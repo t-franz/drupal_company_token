@@ -1,0 +1,13 @@
+name: Custom Company Token
+type: module
+description: Sitewide tokens for the company
+package: Custom
+core_version_requirement: ^9 || ^10
+version: '1.1.1'
+dependencies:
+  - token
+  - token_filter
+configure:
+  custom_company_token.settings_form
+'interface translation project': custom_company_token
+'interface translation server pattern': modules/custom/custom_company_token/translations/custom_company_token.%language.po

@@ -1,0 +1,218 @@
+<?php
+
+use Drupal\media\Entity\Media;
+use Drupal\file\Entity\File;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Render\Markup;
+
+/**
+* Implements hook_token_info().
+* https://opensenselabs.com/blogs/tech/how-create-custom-token-drupal-8
+* https://drupal.stackexchange.com/questions/4930/how-to-programmatically-create-a-custom-token-in-a-module
+* Similar Module:
+* https://www.drupal.org/project/site_settings
+*/
+
+function custom_company_token_token_info() {
+
+  $config = \Drupal::config('custom_company_token.settings');
+
+  $info = [];
+  $info['types']['company'] = [
+    'name' => t('Company Information'),
+    'description' => t('Global tokens for the company')
+  ];
+
+  $info['tokens']['company']['name'] = [
+    'name' => t('Name'),
+    'description' => t('Name of the company (%data)', ['%data' => $config->get('name')])
+  ];
+  $info['tokens']['company']['description'] = [
+    'name' => t('Description'),
+    'description' => t('Description of the company (%data)', ['%data' => $config->get('description')])
+  ];
+  $info['tokens']['company']['street'] = [
+    'name' => t('Street'),
+    'description' => t('Street of the company (%data)', ['%data' => $config->get('street')])
+  ];
+  $info['tokens']['company']['plz'] = [
+    'name' => t('PLZ'),
+    'description' => t('PLZ of the company (%data)', ['%data' => $config->get('plz')])
+  ];
+  $info['tokens']['company']['locality'] = [
+    'name' => t('Locality'),
+    'description' => t('Locality of the company (%data)', ['%data' => $config->get('locality')])
+  ];
+  $info['tokens']['company']['phone'] = [
+    'name' => t('Phone'),
+    'description' => t('Phone-number of the company (%data)', ['%data' => $config->get('phone')])
+  ];
+  $info['tokens']['company']['phonelink'] = [
+    'name' => t('Phone-Link'),
+    'description' => t('Link to the phone-number of the company (%data)', ['%data' => $config->get('phone')])
+  ];
+  $info['tokens']['company']['fax'] = [
+    'name' => t('Fax'),
+    'description' => t('Fax-number of the company (%data)', ['%data' => $config->get('fax')])
+  ];
+  $info['tokens']['company']['mail'] = [
+    'name' => t('Mail'),
+    'description' => t('Email of the company (%data)', ['%data' => $config->get('mail')])
+  ];
+  $info['tokens']['company']['map'] = [
+    'name' => t('Map'),
+    'description' => t('Map to the company (%data)', ['%data' => $config->get('map')])
+  ];
+  $info['tokens']['company']['longitude'] = [
+    'name' => t('Longitude'),
+    'description' => t('Longitude of the companies place (%data)', ['%data' => $config->get('longitude')])
+  ];
+  $info['tokens']['company']['latitude'] = [
+    'name' => t('Latitude'),
+    'description' => t('Latitude of the companies place (%data)', ['%data' => $config->get('latitude')])
+  ];
+  $themeconfig = \Drupal::config('system.theme');
+  $theme_settings = \Drupal::config($themeconfig->get('default') . '.settings')->get();
+  $logo_path = file_create_url($theme_settings['logo']['path']);
+  $info['tokens']['company']['logo'] = [
+    'name' => t('Logo'),
+    'description' => t('URL to the logo of the company (%data)', ['%data' => $logo_path])
+  ];
+  $image = '';
+  $mid = $config->get('image');
+  if ($mid) {
+    $media = Media::load($mid);
+    $medianame = $media->getName();
+    $fid = $media->field_media_image->target_id;
+    $file = File::load($fid);
+    $filename = $file->getFilename();
+    $image = ($medianame == $filename ? $filename : $medianame.': '.$filename);
+  }
+  $info['tokens']['company']['image'] = [
+    'name' => t('Image'),
+    'description' => t('URL to a representative image of the company (%data)', ['%data' => $image])
+  ];
+
+  $info['tokens']['company']['color'] = [
+    'name' => t('Color'),
+    'description' => t('Primary color (%data)', ['%data' => $config->get('color')])
+  ];
+
+  return $info;
+}
+
+
+
+/**
+* Implements hook_tokens().
+*/
+
+
+function custom_company_token_tokens($type, $tokens, array $data, array $options, \Drupal\Core\Render\BubbleableMetadata $bubbleable_metadata) {
+
+  $replacements = [];
+  if ($type == 'company') {
+    $config = \Drupal::config('custom_company_token.settings');
+    foreach ($tokens as $name => $original) {
+      // Find the desired token by name.
+      switch ($name) {
+        case 'name':
+          $replacements[$original] = $config->get('name');
+          break;
+        case 'description':
+          $replacements[$original] = $config->get('description');
+          break;
+        case 'street':
+          $replacements[$original] = $config->get('street');
+          break;
+        case 'plz':
+          $replacements[$original] = $config->get('plz');
+          break;
+        case 'locality':
+          $replacements[$original] = $config->get('locality');
+          break;
+        case 'address':
+          $address = $config->get('street').'<br>';
+          $address .= $config->get('plz').'&nbsp;'.$config->get('locality');
+          $address = Html::decodeEntities($address);
+          $address = Markup::create($address);
+          $replacements[$original] = $address;
+          break;
+        case 'phone':
+          $replacements[$original] = $config->get('phone');
+          break;
+        case 'phonelink':
+          $phone = $config->get('phone');
+          if ($phone) {
+            $link_options = ['attributes' =>['title' => t('Call now')]];
+            $url = Url::fromUri('tel:'.$phone);
+            $url->setOptions($link_options);
+            $link = Link::fromTextAndUrl($phone, $url)->toString();
+            $replacements[$original] = $link;
+          }
+          break;
+        case 'fax':
+          $replacements[$original] = $config->get('fax');
+          break;
+        case 'mail':
+          $replacements[$original] = $config->get('mail');
+          break;
+        case 'maillink':
+          $mail = $config->get('mail');
+          if ($mail) {
+            $mailtext = t('Email');
+            $link_options = ['attributes' =>['title' => t('Email me')]];
+            $url = Url::fromUri('mailto:'.$mail);
+            $url->setOptions($link_options);
+            $link = Link::fromTextAndUrl($mailtext, $url)->toString();
+            $replacements[$original] = $link;
+          }
+          break;
+        case 'logo':
+          $themeconfig = \Drupal::config('system.theme');
+          $theme_settings = \Drupal::config($themeconfig->get('default').'.settings')->get();
+          $logo_path = file_create_url($theme_settings['logo']['path']);
+          if ($logo_path) {
+            $replacements[$original] = $logo_path;
+          }
+          break;
+        case 'map':
+          $replacements[$original] = $config->get('map');
+          break;
+        case 'maplink':
+          $map = $config->get('map');
+          if ($map) {
+            $maptext = t('Road map');
+            $link_options = ['attributes' =>['title' => t('Open external map'),'class' => 'button']];
+            $url = Url::fromUri($map);
+            $url->setOptions($link_options);
+            $link = Link::fromTextAndUrl($maptext, $url)->toString();
+            $replacements[$original] = $link;
+          }
+          break;
+        case 'longitude':
+          $replacements[$original] = $config->get('longitude');
+          break;
+        case 'latitude':
+          $replacements[$original] = $config->get('latitude');
+          break;
+        case 'image':
+          $mid = $config->get('image');
+          if ($mid) {
+            $media = Media::load($mid);
+            $fid = $media->field_media_image->target_id;
+            $file = File::load($fid);
+            $url = $file->getFileUri();
+            $replacements[$original] = file_create_url($url);
+          }
+          break;
+        case 'color':
+          $replacements[$original] = $config->get('color');
+          break;
+      }
+    }
+  }
+  return $replacements;
+}

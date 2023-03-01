@@ -1,0 +1,4 @@
+administer custom_company_token configuration:
+  title: 'Administer Company Tokens'
+  description: 'Administer the global company-token configuration.'
+  restrict access: true

@@ -1,0 +1,6 @@
+custom_company_token.settings_form:
+  title: Custom Company Token
+  description: Configure Custom Company Token.
+  parent: system.admin_config_search
+  route_name: custom_company_token.settings_form
+  weight: 0
